@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pixel CHR Studio - NES Character Editor</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Yu Gothic', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+    }
+
+    .app-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+
+    .header {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .header h1 {
+      margin: 0 0 10px 0;
+      color: #667eea;
+      font-size: 24px;
+    }
+
+    .header p {
+      margin: 5px 0;
+      color: #666;
+      font-size: 13px;
+    }
+
+    .main-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .panel-header {
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 12px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-header::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 16px;
+      background: #667eea;
+      border-radius: 2px;
+    }
+
+    .toolbar {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .toolbar-section {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-section label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #666;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button.secondary {
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    button.secondary:hover {
+      background: #e6e6e6;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    button.danger {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    input[type="file"] {
+      padding: 6px;
+      font-size: 12px;
+    }
+
+    select {
+      padding: 6px 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      font-size: 12px;
+      background: white;
+      cursor: pointer;
+    }
+
+    canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 4px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    #chrGrid {
+      cursor: crosshair;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    #editorTile {
+      cursor: crosshair;
+      width: 100%;
+      max-width: 320px;
+      margin: 10px auto 0;
+    }
+
+    #metatilePreview {
+      cursor: default;
+      width: 100%;
+      max-width: 256px;
+      margin: 10px auto 0;
+    }
+
+    .color-palette {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .color-button {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .color-button:hover {
+      transform: scale(1.1);
+    }
+
+    .color-button.active {
+      border-color: #333;
+      box-shadow: 0 0 0 2px white, 0 0 0 4px #333;
+    }
+
+    .tool-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .tool-buttons button {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
+    .info-section {
+      background: #f5f5f5;
+      border-left: 3px solid #667eea;
+      padding: 10px;
+      margin-top: 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .info-line {
+      margin: 4px 0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .info-label {
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .status-bar {
+      background: white;
+      border-radius: 8px;
+      padding: 12px 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .status-bar div {
+      display: flex;
+      gap: 20px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      padding: 25px;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .modal-content h2 {
+      margin-top: 0;
+      color: #667eea;
+    }
+
+    .modal-content h3 {
+      margin-top: 15px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .modal-content ul {
+      margin: 8px 0 8px 20px;
+      padding: 0;
+      font-size: 12px;
+    }
+
+    .modal-content li {
+      margin: 4px 0;
+      line-height: 1.4;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 1200px) {
+      .main-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 18px;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chr-grid-container {
+      height: 400px;
+      overflow-y: auto;
+      border: 2px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 5px;
+      background: white;
+    }
+
+    .tile-counter {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: bold;
+      color: #667eea;
+      padding: 4px 8px;
+      background: #f5f5f5;
+      border-radius: 3px;
+      margin-left: 8px;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🎨 Pixel CHR Studio</h1>
+      <p>NES Character ROM Editor - Edit 8x8 tiles and 16x16 metatiles</p>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-section">
+        <label>File:</label>
+        <input type="file" id="fileInput" accept=".nes,.chr,.zip,.bin" />
+      </div>
+
+      <div class="toolbar-section">
+        <label>Export Format:</label>
+        <select id="exportFormat">
+          <option value="chr">CHR File (.chr)</option>
+          <option value="bin">Binary (.bin)</option>
+          <option value="png">PNG Image (.png)</option>
+          <option value="hex">Hex Dump (.txt)</option>
+        </select>
+        <button id="exportBtn">Export</button>
+      </div>
+
+      <div class="toolbar-section">
+        <button id="undoBtn" disabled>↶ Undo</button>
+        <button id="redoBtn" disabled>↷ Redo</button>
+        <button id="clearBtn" class="danger">Clear All</button>
+        <button id="helpBtn" class="secondary">Help</button>
+      </div>
+
+      <div class="toolbar-section">
+        <label>Tile Management:</label>
+        <span class="tile-counter"><span id="tileCountDisplay">256</span> / 1024 tiles</span>
+        <button id="addTilesBtn" class="secondary">+ Add 256 Tiles</button>
+      </div>
+    </div>
+
+    <!-- Main Panel -->
+    <div class="main-panel">
+      <!-- Left Panel: CHR Grid -->
+      <div class="panel">
+        <div class="panel-header">CHR Grid <span id="gridTileCount" style="font-size: 12px; font-weight: normal; color: #999;">(256 tiles)</span></div>
+        <div class="chr-grid-container">
+          <canvas id="chrGrid" width="320"></canvas>
+        </div>
+        <div class="info-section">
+          <div class="info-line">
+            <span class="info-label">Selected Tile:</span>
+            <span id="selectedTileNum">0 (0x00)</span>
+          </div>
+          <div class="info-line">
+            <span class="info-label">Position:</span>
+            <span id="tilePos">X:0, Y:0</span>
+          </div>
+          <div class="info-line">
+            <span class="info-label">Load Status:</span>
+            <span id="loadStatus">Ready</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Editor and Tools -->
+      <div class="panel">
+        <div class="panel-header">8x8 Tile Editor</div>
+        <canvas id="editorTile" width="320" height="320"></canvas>
+        
+        <div class="color-palette">
+          <div class="color-button active" data-color="0" style="background-color: #000000" title="Color 0: Black"></div>
+          <div class="color-button" data-color="1" style="background-color: #555555" title="Color 1: Dark Gray"></div>
+          <div class="color-button" data-color="2" style="background-color: #aaaaaa" title="Color 2: Light Gray"></div>
+          <div class="color-button" data-color="3" style="background-color: #ffffff; border: 3px solid #555;" title="Color 3: White"></div>
+        </div>
+
+        <div class="tool-buttons">
+          <button id="flipHBtn" class="secondary">⇄ Flip H</button>
+          <button id="flipVBtn" class="secondary">⇅ Flip V</button>
+          <button id="rotateBtn" class="secondary">⟳ Rotate</button>
+          <button id="copyTileBtn" class="secondary">📋 Copy</button>
+          <button id="pasteTileBtn" class="secondary" disabled>📄 Paste</button>
+        </div>
+
+        <div class="info-section">
+          <div class="info-line">
+            <span class="info-label">Edit Status:</span>
+            <span id="editStatus">Ready to edit</span>
+          </div>
+          <div class="info-line">
+            <span class="info-label">Keyboard:</span>
+            <span>0-3 = Color | Ctrl+Z = Undo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metatile Preview -->
+    <div class="panel">
+      <div class="panel-header">16x16 Metatile Preview</div>
+      <div style="text-align: center;">
+        <canvas id="metatilePreview" width="256" height="256"></canvas>
+        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+          Displays 2x2 tiles (16x16 pixels) from selected tile
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar" style="margin-top: 10px;">
+      <div>
+        <span id="statusLeft">Ready</span>
+      </div>
+      <div>
+        <span>Mouse: <span id="mousePos">(0, 0)</span></span>
+        <span id="statusRight"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="helpModal" class="modal">
+    <div class="modal-content">
+      <h2>📖 Help</h2>
+      
+      <h3>Basic Usage</h3>
+      <ul>
+        <li><strong>Load Files:</strong> NES, CHR, ZIP, BIN file formats supported</li>
+        <li><strong>Select Tile:</strong> Click on grid (left panel) to select 8x8 tile</li>
+        <li><strong>Edit Pixels:</strong> Click on editor (right panel) to draw</li>
+        <li><strong>Choose Color:</strong> Click color buttons or press 0-3 keys</li>
+      </ul>
+
+      <h3>⌨️ Keyboard Shortcuts</h3>
+      <ul>
+        <li><strong>Ctrl+Z:</strong> Undo</li>
+        <li><strong>Ctrl+Shift+Z:</strong> Redo</li>
+        <li><strong>Ctrl+C:</strong> Copy tile</li>
+        <li><strong>Ctrl+V:</strong> Paste tile</li>
+        <li><strong>0-3:</strong> Select color palette</li>
+      </ul>
+
+      <h3>💾 File Formats</h3>
+      <ul>
+        <li><strong>CHR:</strong> NES character ROM (standard 8KB)</li>
+        <li><strong>NES:</strong> NES ROM file (CHR auto-extracted)</li>
+        <li><strong>BIN:</strong> Binary file</li>
+        <li><strong>PNG:</strong> Export as image</li>
+      </ul>
+
+      <h3>🎨 Color Palette</h3>
+      <ul>
+        <li><strong>0 (Black):</strong> Background / transparent</li>
+        <li><strong>1 (Dark Gray):</strong> Shadow / outline</li>
+        <li><strong>2 (Light Gray):</strong> Midtone / highlight</li>
+        <li><strong>3 (White):</strong> Brightest highlight</li>
+      </ul>
+
+      <h3>🛠️ Tools</h3>
+      <ul>
+        <li><strong>Flip H:</strong> Flip tile horizontally</li>
+        <li><strong>Flip V:</strong> Flip tile vertically</li>
+        <li><strong>Rotate:</strong> Rotate tile 90° clockwise</li>
+        <li><strong>Copy/Paste:</strong> Tile copy & paste</li>
+      </ul>
+
+      <h3>💡 Tips</h3>
+      <ul>
+        <li>Tiles expand from initial 256 to maximum 1024</li>
+        <li>Use toolbar "+ Add 256 Tiles" to expand in blocks</li>
+        <li>Undo history supports up to 50 steps</li>
+        <li>Multiple export formats available</li>
+        <li>Metatile preview helps with tile arrangement</li>
+      </ul>
+
+      <button onclick="document.getElementById('helpModal').classList.remove('active')" style="margin-top: 15px; width: 100%;">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // DOM Elements
+    // ============================================
+    const fileInput = document.getElementById('fileInput');
+    const exportBtn = document.getElementById('exportBtn');
+    const exportFormat = document.getElementById('exportFormat');
+    const clearBtn = document.getElementById('clearBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    const helpBtn = document.getElementById('helpBtn');
+    const flipHBtn = document.getElementById('flipHBtn');
+    const flipVBtn = document.getElementById('flipVBtn');
+    const rotateBtn = document.getElementById('rotateBtn');
+    const copyTileBtn = document.getElementById('copyTileBtn');
+    const pasteTileBtn = document.getElementById('pasteTileBtn');
+
+    const chrCanvas = document.getElementById('chrGrid');
+    const chrCtx = chrCanvas.getContext('2d', { willReadFrequently: true });
+    const editorCanvas = document.getElementById('editorTile');
+    const editorCtx = editorCanvas.getContext('2d', { willReadFrequently: true });
+    const metatileCanvas = document.getElementById('metatilePreview');
+    const metatileCtx = metatileCanvas.getContext('2d', { willReadFrequently: true });
+
+    // Info displays
+    const selectedTileNum = document.getElementById('selectedTileNum');
+    const tilePos = document.getElementById('tilePos');
+    const loadStatus = document.getElementById('loadStatus');
+    const statusLeft = document.getElementById('statusLeft');
+    const statusRight = document.getElementById('statusRight');
+    const editStatus = document.getElementById('editStatus');
+    const mousePos = document.getElementById('mousePos');
+
+    // ============================================
+    // Global State
+    // ============================================
+    let chrData = new Uint8Array(4096);  // Initial: 256 tiles (4KB)
+    let maxTiles = 256;
+    let selectedTile = 0;
+    let selectedColor = 0;
+    let copiedTile = null;
+    let undoStack = [];
+    let redoStack = [];
+    const maxUndoSteps = 50;
+    const MaxTilesBoundary = 1024;
+    const palette = ['#000000', '#555555', '#aaaaaa', '#ffffff'];
+
+    // ============================================
+    // Helper Functions
+    // ============================================
+    function updateUndoRedoButtons() {
+      undoBtn.disabled = undoStack.length === 0;
+      redoBtn.disabled = redoStack.length === 0;
+    }
+
+    function saveState() {
+      undoStack.push(new Uint8Array(chrData));
+      if (undoStack.length > maxUndoSteps) {
+        undoStack.shift();
+      }
+      redoStack = [];
+      updateUndoRedoButtons();
+    }
+
+    function undo() {
+      if (undoStack.length > 0) {
+        redoStack.push(new Uint8Array(chrData));
+        chrData = undoStack.pop();
+        redrawAll();
+        updateUndoRedoButtons();
+        statusLeft.textContent = 'Undo';
+      }
+    }
+
+    function redo() {
+      if (redoStack.length > 0) {
+        undoStack.push(new Uint8Array(chrData));
+        chrData = redoStack.pop();
+        redrawAll();
+        updateUndoRedoButtons();
+        statusLeft.textContent = 'Redo';
+      }
+    }
+
+    // ============================================
+    // Drawing Functions
+    // ============================================
+    function drawTile(ctx, data, offset, dx, dy, scale) {
+      for (let row = 0; row < 8; row++) {
+        const plane1 = data[offset + row];
+        const plane2 = data[offset + row + 8];
+
+        for (let col = 0; col < 8; col++) {
+          const bit1 = (plane1 >> (7 - col)) & 1;
+          const bit2 = (plane2 >> (7 - col)) & 1;
+          const colorIndex = bit1 + (bit2 << 1);
+
+          ctx.fillStyle = palette[colorIndex];
+          ctx.fillRect(dx + col * scale, dy + row * scale, scale, scale);
+        }
+      }
+    }
+
+    function drawGrid(ctx, w, h, cellSize) {
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+
+      for (let x = 0; x <= w; x += cellSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y <= h; y += cellSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+    }
+
+    function updateCHRGridCanvas() {
+      const rows = Math.ceil(maxTiles / 16);
+      chrCanvas.height = rows * 20;
+    }
+
+    function drawCHRGrid() {
+      chrCtx.clearRect(0, 0, chrCanvas.width, chrCanvas.height);
+
+      for (let i = 0; i < maxTiles; i++) {
+        if (i * 16 >= chrData.length) break;
+        const x = (i % 16) * 20;
+        const y = Math.floor(i / 16) * 20;
+        drawTile(chrCtx, chrData, i * 16, x, y, 2.5);
+      }
+
+      const rows = Math.ceil(maxTiles / 16);
+      drawGrid(chrCtx, 320, rows * 20, 20);
+      drawSelectionBox();
+    }
+
+    function drawSelectionBox() {
+      const x = (selectedTile % 16) * 20;
+      const y = Math.floor(selectedTile / 16) * 20;
+
+      chrCtx.strokeStyle = '#ff6b6b';
+      chrCtx.lineWidth = 3;
+      chrCtx.strokeRect(x - 1.5, y - 1.5, 22, 22);
+    }
+
+    function drawEditorTile() {
+      editorCtx.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+      drawTile(editorCtx, chrData, selectedTile * 16, 0, 0, 40);
+      drawGrid(editorCtx, 320, 320, 40);
+    }
+
+    function drawMetatile() {
+      metatileCtx.clearRect(0, 0, metatileCanvas.width, metatileCanvas.height);
+
+      const tilesToDraw = [
+        selectedTile,
+        Math.min(selectedTile + 1, maxTiles - 1),
+        Math.min(selectedTile + 16, maxTiles - 1),
+        Math.min(selectedTile + 17, maxTiles - 1)
+      ];
+
+      tilesToDraw.forEach((idx, i) => {
+        if (idx < maxTiles && idx * 16 < chrData.length) {
+          const dx = (i % 2) * 128;
+          const dy = Math.floor(i / 2) * 128;
+          drawTile(metatileCtx, chrData, idx * 16, dx, dy, 16);
+        }
+      });
+
+      drawGrid(metatileCtx, 256, 256, 128);
+    }
+
+    function redrawAll() {
+      drawCHRGrid();
+      drawEditorTile();
+      drawMetatile();
+      updateTileInfo();
+    }
+
+    function updateTileInfo() {
+      selectedTileNum.textContent = `${selectedTile} (0x${selectedTile.toString(16).toUpperCase().padStart(2, '0')})`;
+      const x = selectedTile % 16;
+      const y = Math.floor(selectedTile / 16);
+      tilePos.textContent = `X:${x}, Y:${y}`;
+    }
+
+    // ============================================
+    // Pixel Operations
+    // ============================================
+    function setPixelInCHR(tileIndex, x, y, colorIndex) {
+      const offset = tileIndex * 16;
+      const bit1 = colorIndex & 1;
+      const bit2 = (colorIndex >> 1) & 1;
+
+      chrData[offset + y] &= ~(1 << (7 - x));
+      chrData[offset + y] |= (bit1 << (7 - x));
+
+      chrData[offset + y + 8] &= ~(1 << (7 - x));
+      chrData[offset + y + 8] |= (bit2 << (7 - x));
+    }
+
+    function getPixelFromCHR(tileIndex, x, y) {
+      const offset = tileIndex * 16;
+      const bit1 = (chrData[offset + y] >> (7 - x)) & 1;
+      const bit2 = (chrData[offset + y + 8] >> (7 - x)) & 1;
+      return bit1 + (bit2 << 1);
+    }
+
+    function getTileData(tileIndex) {
+      return chrData.slice(tileIndex * 16, tileIndex * 16 + 16);
+    }
+
+    function setTileData(tileIndex, data) {
+      chrData.set(data, tileIndex * 16);
+    }
+
+    // ============================================
+    // Tile Transformation Functions
+    // ============================================
+    function flipTileHorizontal(tileIndex) {
+      saveState();
+      const data = getTileData(tileIndex);
+
+      for (let row = 0; row < 8; row++) {
+        let byte1 = data[row];
+        let byte2 = data[row + 8];
+
+        byte1 = reverseBits(byte1);
+        byte2 = reverseBits(byte2);
+
+        data[row] = byte1;
+        data[row + 8] = byte2;
+      }
+
+      setTileData(tileIndex, data);
+      redrawAll();
+      editStatus.textContent = `Tile ${tileIndex} flipped horizontally`;
+    }
+
+    function flipTileVertical(tileIndex) {
+      saveState();
+      const data = getTileData(tileIndex);
+      const newData = new Uint8Array(16);
+
+      for (let row = 0; row < 8; row++) {
+        newData[7 - row] = data[row];
+        newData[15 - row] = data[row + 8];
+      }
+
+      setTileData(tileIndex, newData);
+      redrawAll();
+      editStatus.textContent = `Tile ${tileIndex} flipped vertically`;
+    }
+
+    function rotateTile90(tileIndex) {
+      saveState();
+      const data = getTileData(tileIndex);
+      const newData = new Uint8Array(16);
+
+      for (let row = 0; row < 8; row++) {
+        let byte1 = 0;
+        let byte2 = 0;
+
+        for (let col = 0; col < 8; col++) {
+          const srcRow = 7 - col;
+          const srcCol = row;
+
+          const color = getPixelFromCHR(tileIndex, srcCol, srcRow);
+          const bit1 = color & 1;
+          const bit2 = (color >> 1) & 1;
+
+          byte1 |= (bit1 << (7 - col));
+          byte2 |= (bit2 << (7 - col));
+        }
+
+        newData[row] = byte1;
+        newData[row + 8] = byte2;
+      }
+
+      setTileData(tileIndex, newData);
+      redrawAll();
+      editStatus.textContent = `Tile ${tileIndex} rotated 90°`;
+    }
+
+    function reverseBits(byte) {
+      let result = 0;
+      for (let i = 0; i < 8; i++) {
+        result = (result << 1) | (byte & 1);
+        byte >>= 1;
+      }
+      return result;
+    }
+
+    // ============================================
+    // Tile Copy/Paste
+    // ============================================
+    function copyTile() {
+      copiedTile = new Uint8Array(16);
+      const offset = selectedTile * 16;
+      copiedTile.set(chrData.slice(offset, offset + 16));
+      pasteTileBtn.disabled = false;
+      editStatus.textContent = `Tile ${selectedTile} copied`;
+    }
+
+    function pasteTile() {
+      if (copiedTile) {
+        saveState();
+        const offset = selectedTile * 16;
+        chrData.set(copiedTile, offset);
+        redrawAll();
+        editStatus.textContent = `Tile ${selectedTile} pasted`;
+      }
+    }
+
+    // ============================================
+    // File Operations
+    // ============================================
+    function expandCHRData(newSize) {
+      if (newSize <= chrData.length) return;
+      const newData = new Uint8Array(newSize);
+      newData.set(chrData);
+      chrData = newData;
+      maxTiles = newSize / 16;
+      if (maxTiles > MaxTilesBoundary) maxTiles = MaxTilesBoundary;
+    }
+
+    function loadCHRFile(data) {
+      let requiredSize = Math.min(data.length, MaxTilesBoundary * 16);
+      requiredSize = Math.ceil(requiredSize / 4096) * 4096;
+      
+      expandCHRData(requiredSize);
+      chrData.fill(0);
+      chrData.set(data.slice(0, requiredSize));
+      
+      const tileCount = requiredSize / 16;
+      loadStatus.textContent = `CHR loaded (${requiredSize} bytes = ${tileCount} tiles)`;
+      updateTileCountUI();
+      updateCHRGridCanvas();
+      return true;
+    }
+
+    function loadNESFile(data) {
+      if (data.length < 16 ||
+        data[0] !== 0x4E || data[1] !== 0x45 ||
+        data[2] !== 0x53 || data[3] !== 0x1A) {
+        loadStatus.textContent = 'Error: Invalid NES file header';
+        return false;
+      }
+
+      const prgSize = data[4] * 16384;
+      const chrSize = data[5] * 8192;
+
+      if (chrSize === 0) {
+        loadStatus.textContent = 'Error: No CHR data found';
+        return false;
+      }
+
+      if (16 + prgSize + chrSize > data.length) {
+        loadStatus.textContent = 'Error: Invalid file size';
+        return false;
+      }
+
+      const requiredSize = Math.min(chrSize, MaxTilesBoundary * 16);
+      expandCHRData(requiredSize);
+      chrData.fill(0);
+      chrData.set(data.slice(16 + prgSize, 16 + prgSize + requiredSize));
+      
+      const tileCount = requiredSize / 16;
+      loadStatus.textContent = `NES loaded (PRG: ${prgSize}, CHR: ${tileCount} tiles)`;
+      updateTileCountUI();
+      updateCHRGridCanvas();
+      return true;
+    }
+
+    async function loadZipFile(arrayBuffer) {
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      const targetFile = Object.values(zip.files).find(f =>
+        f.name.endsWith(".nes") || f.name.endsWith(".chr") || f.name.endsWith(".bin")
+      );
+
+      if (!targetFile) {
+        loadStatus.textContent = 'Error: NES/CHR/BIN file not found in ZIP';
+        return false;
+      }
+
+      const fileData = new Uint8Array(await targetFile.async("uint8array"));
+      loadStatus.textContent = `ZIP extracted: ${targetFile.name}`;
+
+      if (targetFile.name.endsWith(".chr")) {
+        return loadCHRFile(fileData);
+      } else if (targetFile.name.endsWith(".bin")) {
+        return loadCHRFile(fileData);
+      } else {
+        return loadNESFile(fileData);
+      }
+    }
+
+    // ============================================
+    // Export Functions
+    // ============================================
+    function exportToPNG() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      const rows = Math.ceil(maxTiles / 16);
+      canvas.height = rows * 16;
+      const ctx = canvas.getContext('2d');
+
+      for (let i = 0; i < maxTiles; i++) {
+        if (i * 16 >= chrData.length) break;
+        const x = (i % 16) * 16;
+        const y = Math.floor(i / 16) * 16;
+        drawTile(ctx, chrData, i * 16, x, y, 2);
+      }
+
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'chr_export.png';
+        a.click();
+        URL.revokeObjectURL(url);
+        statusLeft.textContent = 'PNG exported';
+      });
+    }
+
+    function exportToHex() {
+      let hexText = '';
+      for (let i = 0; i < chrData.length; i++) {
+        if (i % 16 === 0) {
+          hexText += `0x${(i).toString(16).toUpperCase().padStart(4, '0')}: `;
+        }
+        hexText += chrData[i].toString(16).toUpperCase().padStart(2, '0') + ' ';
+        if ((i + 1) % 16 === 0) {
+          hexText += '\n';
+        }
+      }
+
+      const blob = new Blob([hexText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'chr_export.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+      statusLeft.textContent = 'Hex dump exported';
+    }
+
+    // ============================================
+    // UI Update Functions
+    // ============================================
+    function updateTileCountUI() {
+      document.getElementById('tileCountDisplay').textContent = maxTiles;
+      document.getElementById('gridTileCount').textContent = `(${maxTiles} tiles)`;
+      const addBtn = document.getElementById('addTilesBtn');
+      addBtn.disabled = maxTiles >= MaxTilesBoundary;
+    }
+
+    // ============================================
+    // Event Listeners
+    // ============================================
+
+    // File input
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        let success = false;
+
+        if (file.name.endsWith(".zip")) {
+          success = await loadZipFile(arrayBuffer);
+        } else if (file.name.endsWith(".chr") || file.name.endsWith(".bin")) {
+          success = loadCHRFile(new Uint8Array(arrayBuffer));
+        } else if (file.name.endsWith(".nes")) {
+          success = loadNESFile(new Uint8Array(arrayBuffer));
+        } else {
+          loadStatus.textContent = 'Error: Unsupported file format';
+          return;
+        }
+
+        if (success) {
+          saveState();
+          redrawAll();
+          statusLeft.textContent = `Loaded ${file.name}`;
+        }
+      } catch (error) {
+        loadStatus.textContent = `Error: ${error.message}`;
+      }
+    });
+
+    // Export button
+    exportBtn.addEventListener('click', () => {
+      const format = exportFormat.value;
+
+      switch (format) {
+        case 'chr':
+        case 'bin': {
+          const blob = new Blob([chrData], { type: 'application/octet-stream' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `chr_export.${format}`;
+          a.click();
+          URL.revokeObjectURL(url);
+          statusLeft.textContent = `${format.toUpperCase()} file exported`;
+          break;
+        }
+        case 'png':
+          exportToPNG();
+          break;
+        case 'hex':
+          exportToHex();
+          break;
+      }
+    });
+
+    // CHR Grid click
+    chrCanvas.addEventListener('click', (e) => {
+      const rect = chrCanvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / 20);
+      const y = Math.floor((e.clientY - rect.top) / 20);
+
+      const newTile = y * 16 + x;
+      if (newTile >= 0 && newTile < maxTiles) {
+        selectedTile = newTile;
+        redrawAll();
+        editStatus.textContent = `Tile ${newTile} selected`;
+      }
+    });
+
+    // Editor tile click
+    editorCanvas.addEventListener('click', (e) => {
+      const rect = editorCanvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / 40);
+      const y = Math.floor((e.clientY - rect.top) / 40);
+
+      if (x >= 0 && x < 8 && y >= 0 && y < 8) {
+        saveState();
+        setPixelInCHR(selectedTile, x, y, selectedColor);
+        redrawAll();
+        editStatus.textContent = `Drew with color ${selectedColor}`;
+      }
+    });
+
+    // Color palette
+    document.querySelectorAll('.color-button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelector('.color-button.active').classList.remove('active');
+        btn.classList.add('active');
+        selectedColor = parseInt(btn.dataset.color);
+        editStatus.textContent = `Color ${selectedColor} selected`;
+      });
+    });
+
+    // Buttons
+    undoBtn.addEventListener('click', undo);
+    redoBtn.addEventListener('click', redo);
+    flipHBtn.addEventListener('click', () => flipTileHorizontal(selectedTile));
+    flipVBtn.addEventListener('click', () => flipTileVertical(selectedTile));
+    rotateBtn.addEventListener('click', () => rotateTile90(selectedTile));
+    copyTileBtn.addEventListener('click', copyTile);
+    pasteTileBtn.addEventListener('click', pasteTile);
+    helpBtn.addEventListener('click', () => {
+      document.getElementById('helpModal').classList.add('active');
+    });
+
+    // Add tiles button
+    document.getElementById('addTilesBtn').addEventListener('click', () => {
+      const newTileCount = Math.min(maxTiles + 256, MaxTilesBoundary);
+      if (newTileCount !== maxTiles) {
+        expandCHRData(newTileCount * 16);
+        updateTileCountUI();
+        updateCHRGridCanvas();
+        redrawAll();
+        statusLeft.textContent = `Added ${newTileCount - maxTiles} tiles (total: ${maxTiles})`;
+      }
+    });
+
+    // Clear button
+    clearBtn.addEventListener('click', () => {
+      if (confirm('Clear all CHR data?')) {
+        saveState();
+        chrData.fill(0);
+        redrawAll();
+        statusLeft.textContent = 'CHR data cleared';
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'z':
+            e.preventDefault();
+            if (e.shiftKey) {
+              redo();
+            } else {
+              undo();
+            }
+            break;
+          case 'c':
+            e.preventDefault();
+            copyTile();
+            break;
+          case 'v':
+            e.preventDefault();
+            pasteTile();
+            break;
+        }
+      }
+
+      // Color selection with number keys
+      if (e.key >= '0' && e.key <= '3') {
+        const colorIndex = parseInt(e.key);
+        document.querySelector('.color-button.active').classList.remove('active');
+        document.querySelector(`[data-color="${colorIndex}"]`).classList.add('active');
+        selectedColor = colorIndex;
+        editStatus.textContent = `Color ${colorIndex} selected (keyboard)`;
+      }
+    });
+
+    // Mouse position tracking
+    document.addEventListener('mousemove', (e) => {
+      mousePos.textContent = `(${e.clientX}, ${e.clientY})`;
+    });
+
+    // Initialize
+    updateCHRGridCanvas();
+    redrawAll();
+    updateTileCountUI();
+    statusLeft.textContent = 'Load a file to get started';
+  </script>
+</body>
+</html>
