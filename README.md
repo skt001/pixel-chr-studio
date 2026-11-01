@@ -2,6 +2,8 @@
 
 A web-based NES Character ROM (CHR) editor for editing 8x8 pixel tiles and 16x16 metatiles.
 
+[日本語版はこちら](README.ja.md)
+
 ## Features
 
 - **Edit NES Character Data** - Load and edit CHR ROM files from NES games
@@ -130,7 +132,7 @@ Potential features for future versions:
 
 ## Credits
 
-Created by **skt001** (skt001@gmail.com)
+Created by **skt001**
 
 ## License
 
